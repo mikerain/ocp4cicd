@@ -1,0 +1,11 @@
+用于演示OCP中项目使用自己项目中的JENKINS实例
+运行脚本，会自动完成JENKINS实例和演示应用的创建
+
+PIPELINE需要手工在JENKINS实例中创建，内容在PIPELINE文件中。
+
+CI可在JENKINS手动发起，或者可以在JENKINS设置定时构建。
+pipeline中包括了CD步骤，在构建完成后，自动进行部署。
+
+enhanced-bc.yaml 和enhanced-pipeline
+演示了使用了自动定义的dockerfile+binary的buildconfig构建过程。为简化过程，没有定义CD部署演示。
+ 
