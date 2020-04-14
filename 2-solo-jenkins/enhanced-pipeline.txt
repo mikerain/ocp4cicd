@@ -1,0 +1,76 @@
+pipeline {
+    agent { node { label "maven" } }
+    
+    parameters {
+        choice("name": 'BRANCH',choices: 'test\nmaster' )
+    }
+    
+    environment {
+        // CD_URL = 'http://127.0.0.1:8000/octopus/appimage_updateversion/'
+        IMAGE_PATH = "docker.io/mikerain123/springbootdemoshowip:test_latest"
+        REPO_URL = "https://github.com/mikerain/log-collection.git"
+        MAVEN_MIRROR_URL = "http://maven.aliyun.com/nexus/content/groups/public/"
+    }
+    
+    stages {
+        
+        // stage('test with cluster') {
+        //     steps {
+        //          script {
+        //             openshift.withCluster() {
+        //                 openshift.withProject("demo-solo-project") {
+        //                     echo "${openshift.raw( "version" ).out}"
+        //                     // openshift.set("image", "dc/log-collection", "tasklog-collection-external=registry.mike.com:5000/demo-external-project/log-collection-external:${BUILD_NUMBER}")
+        //                     openshift.selector("dc", "log-collection").rollout().latest();
+        //                 }
+                          
+        //             }
+        //         }    
+        //     }
+        // }
+        
+        stage ('Sync Code') {
+            
+            steps {
+                echo "Clone ${BRANCH}"
+                // sh "git clone https://github.com/mikerain/log-collection.git -b ${BRANCH} ."
+                  checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '.'], [$class: 'CleanBeforeCheckout', deleteUntrackedNestedRepositories: true]], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/mikerain/log-collection.git']]])
+            }    
+        }
+        
+        stage ('Replace Mirror') {
+            steps {
+                echo "Build..."
+                sh "sed -i s'|https://repo1.maven.org/maven2| http://maven.aliyun.com/nexus/content/groups/public/|g' /home/jenkins/.m2/settings.xml"
+                sh "grep 'url' /home/jenkins/.m2/settings.xml"
+            }    
+        }
+        
+        stage ('Build binary') {
+            steps {
+                echo "Build..."
+                sh 'mvn -U clean package -Ptest ' 
+            }    
+        }
+        
+        
+        stage('build image') {
+            // steps {
+            //     echo "begin build images"
+            //     sh 'podman build -f Dockerfile -t default-route-openshift-image-registry.apps-crc.testing/demo-project/log-collection-2:latest'
+
+            // }
+            steps {
+                script {
+                    openshift.withCluster() {
+                      openshift.withProject("demo-solo-project") {
+                        openshift.selector("bc", "log-collection-dockerfile").startBuild("--from-file=target/log-collection-demo-0.0.1-SNAPSHOT.jar","--wait=true")
+                        openshift.tag("log-collection-dockerfile:latest", "log-collection-dockerfile:${BUILD_NUMBER}")
+                      }
+                    }
+                }
+            }
+        }
+        
+    }    
+}

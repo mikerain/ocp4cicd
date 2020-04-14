@@ -1,0 +1,38 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewBuild
+  labels:
+    build: log-collection-dockerfile
+  name: log-collection-dockerfile
+  namespace: demo-solo-project
+spec:
+  failedBuildsHistoryLimit: 5
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: log-collection-dockerfile:latest
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    binary: {}
+    dockerfile: "FROM openjdk:8\nENV TZ=Asia/Shanghai\nCOPY log-collection-demo-0.0.1-SNAPSHOT.jar
+      /usr/local/service.jar\nEXPOSE 8080 \nCMD java -jar /usr/local/service.jar  \n"
+    type: Binary
+  strategy:
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: openjdk:8
+    type: Docker
+  successfulBuildsHistoryLimit: 5
+  triggers:
+    type: Generic
+  - type: ConfigChange
+  - imageChange:
+      lastTriggeredImageID: openjdk@sha256:3df52c4d414526f57880a50174ec2a4cf57fcbffeda607f0e9c545be2a5478fe
+    type: ImageChange
+

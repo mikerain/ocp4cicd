@@ -9,3 +9,4 @@ oc set triggers dc log-collection  --manual -n demo-solo-project
 
 oc expose service log-collection
 
+oc patch bc/log-collection --patch '{"spec": {"strategy": {"sourceStrategy": {"env": [{"name": "MAVEN_MIRROR_URL","value": "http://maven.aliyun.com/nexus/content/groups/public/"}]}}}}' -n demo-solo-project

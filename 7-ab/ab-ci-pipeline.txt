@@ -1,0 +1,58 @@
+node {
+  stage('Build Tasks') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        openshift.selector("bc", "log-collection-${DEP_TYPE}").startBuild("--wait=true")
+      }
+    }
+  }
+  stage('Tag Image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        openshift.tag("log-collection-${DEP_TYPE}:latest", "log-collection-${DEP_TYPE}:${BUILD_NUMBER}")
+      }
+    }
+  }
+  
+stage('change Route weight to 0') {
+    echo "change service ${DEP_TYPE}  to 0"
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        def route = openshift.selector("route/log-collection").object()
+        if ("${DEP_TYPE}" == 'a') {
+            route.spec.to.weight = 0
+        }
+        else {
+            route.spec.alternateBackends[0].weight = 0
+        }
+        openshift.apply(route)
+      }
+    }
+  }
+  
+  stage('Deploy new image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        openshift.selector("dc", "log-collection-${DEP_TYPE}").rollout().latest()
+      }
+    }
+  }
+ 
+  
+stage('restore Route weight') {
+    echo "restore service ${DEP_TYPE} to route"
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        def route = openshift.selector("route/log-collection").object()
+        if ("${DEP_TYPE}" == 'a') {
+            route.spec.to.weight = 50
+        }
+        else {
+            route.spec.alternateBackends[0].weight = 50
+        }
+        openshift.apply(route)
+      }
+    }
+  }
+  
+}

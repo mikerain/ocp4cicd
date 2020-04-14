@@ -1,0 +1,15 @@
+node {
+
+  stage('Deploy new image') {
+    openshift.withCluster() {
+    //   openshift.tag("demo-icbc-reuse-test-project/log-collection:${tag}","demo-icbc-reuse-prod-project/log-collection:latest")
+      openshift.tag("demo-icbc-reuse-test-project/log-collection:${tag}","demo-icbc-reuse-prod-project/log-collection:${tag}")
+      openshift.withProject("demo-icbc-reuse-prod-project") {
+        //good
+        // openshift.set("image", "dc/log-collection", "log-collection=image-registry.openshift-image-registry.svc:5000/demo-icbc-reuse-prod-project/log-collection:${tag}")
+        openshift.set("image", "dc/log-collection", "log-collection=image-registry.openshift-image-registry.svc:5000/demo-icbc-reuse-test-project/log-collection:${tag}")
+
+      }
+    }
+  }
+}

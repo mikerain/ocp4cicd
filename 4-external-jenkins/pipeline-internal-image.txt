@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice("name": 'BRANCH',choices: 'master\ntest' )
+    }
+    
+    environment {
+
+        REPO_URL = "https://github.com/mikerain/log-collection.git"
+    }
+    
+    stages {
+        // stage('ClearnWorkSpace'){
+        //     steps {
+        //         cleanWs()
+        //     }
+        // }
+        
+        stage ('Sync Code') {
+            
+            steps {
+                echo "Clone ${BRANCH}"
+                // sh "git clone https://github.com/mikerain/log-collection.git -b ${BRANCH} ."
+                  checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '.'], [$class: 'CleanBeforeCheckout', deleteUntrackedNestedRepositories: true]], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/mikerain/log-collection.git']]])
+            }    
+        }
+        
+        stage ('Build') {
+            steps {
+                echo "Build..."
+                sh 'mvn -U clean package -Ptest ' 
+            }    
+        }
+        
+        stage('Arcive Artifact') {
+            steps {
+              echo "save artifact"
+              archiveArtifacts '**/target/*.jar'
+            }
+        }
+        
+        stage('build and tag image') {
+            steps {
+                echo "begin build images"
+                sh 'podman build -f Dockerfile -t default-route-openshift-image-registry.apps-crc.testing/demo-external-project/log-collection:latest'
+
+            }
+  
+        }
+        
+        stage('push image') {
+            steps {
+        
+                echo "push images"
+                sh """
+                export KUBECONFIG=/home/qxu/.kube/config-crc
+                oc login -u mike -p redhat  https://api.crc.testing:6443
+                podman login -u mike -p \$(oc whoami -t) default-route-openshift-image-registry.apps-crc.testing
+                podman push default-route-openshift-image-registry.apps-crc.testing/demo-external-project/log-collection:latest
+                """
+            }
+        }
+    
+    }    
+}

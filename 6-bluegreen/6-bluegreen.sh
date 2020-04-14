@@ -8,3 +8,7 @@ oc set triggers dc log-collection-blue  --manual -n demo-icbc-bluegreen-project
 oc set triggers dc log-collection-green  --manual -n demo-icbc-bluegreen-project
 
 oc expose service log-collection-blue  --name=log-collection -n demo-icbc-bluegreen-project
+
+oc patch bc/log-collection-a --patch '{"spec": {"strategy": {"sourceStrategy": {"env": [{"name": "MAVEN_MIRROR_URL","value": "http://maven.aliyun.com/nexus/content/groups/public/"}]}}}}' -n demo-icbc-bluegreen-project
+
+oc patch bc/log-collection-b --patch '{"spec": {"strategy": {"sourceStrategy": {"env": [{"name": "MAVEN_MIRROR_URL","value": "http://maven.aliyun.com/nexus/content/groups/public/"}]}}}}' -n demo-icbc-bluegreen-project

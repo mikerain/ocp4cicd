@@ -1,0 +1,24 @@
+node {
+  stage('Build Tasks') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-reuse-test-project") {
+        openshift.selector("bc", "log-collection").startBuild("--wait=true")
+      }
+    }
+  }
+  stage('Tag Image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-reuse-test-project") {
+        openshift.tag("log-collection:latest", "log-collection:${BUILD_NUMBER}")
+      }
+    }
+  }
+  stage('Deploy new image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-reuse-test-project") {
+        openshift.selector("dc", "log-collection").rollout().latest();
+      }
+    }
+  }
+   
+}

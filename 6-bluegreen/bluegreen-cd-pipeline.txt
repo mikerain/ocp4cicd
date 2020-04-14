@@ -1,0 +1,15 @@
+node {
+
+  stage('Switch Route') {
+    echo "switch route to ${DEP_TYPE}"
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-bluegreen-project") {
+        def route = openshift.selector("route/log-collection").object()
+        route.spec.to.name="log-collection-${DEP_TYPE}"
+        openshift.apply(route)
+        sleep 2
+      }
+    }
+  }
+   
+}

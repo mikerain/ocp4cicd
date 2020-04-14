@@ -1,0 +1,36 @@
+node {
+  stage('Build Tasks') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-bluegreen-project") {
+        openshift.selector("bc", "log-collection-${DEP_TYPE}").startBuild("--wait=true")
+      }
+    }
+  }
+  stage('Tag Image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-bluegreen-project") {
+        openshift.tag("log-collection-${DEP_TYPE}:latest", "log-collection-${DEP_TYPE}:${BUILD_NUMBER}")
+      }
+    }
+  }
+  stage('Deploy new image') {
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-bluegreen-project") {
+        openshift.selector("dc", "log-collection-${DEP_TYPE}").rollout().latest();
+      }
+    }
+  }
+  
+  stage('Switch Route') {
+    echo "switch route to ${DEP_TYPE}"
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-bluegreen-project") {
+        def route = openshift.selector("route/log-collection").object()
+        route.spec.to.name="log-collection-${DEP_TYPE}"
+        openshift.apply(route)
+        sleep 5
+      }
+    }
+  }
+   
+}

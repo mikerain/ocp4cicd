@@ -1,0 +1,20 @@
+node {
+
+  stage('change Route weight') {
+    echo "change route to ${DEP_TYPE} weight: ${WEIGHT}"
+    openshift.withCluster() {
+      openshift.withProject("demo-icbc-ab-project") {
+        def route = openshift.selector("route/log-collection").object()
+        if ("${DEP_TYPE}" == 'a') {
+            route.spec.to.weight = "${WEIGHT}".toInteger()
+        }
+        else {
+            route.spec.alternateBackends[0].weight = "${WEIGHT}".toInteger()
+        }
+        openshift.apply(route)
+        sleep 2
+      }
+    }
+  }
+   
+}
